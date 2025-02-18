@@ -1,0 +1,34 @@
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.leaflet-control-container .leaflet-routing-container-hide {
+  display: none;
+}
+
+.leaflet-routing-container {
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  max-height: 400px;
+  overflow-y: auto;
+  width: 300px;
+}
+
+/* Fix pour les icônes Leaflet */
+.leaflet-default-icon-path {
+  background-image: url(https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png);
+}
+
+/* Assurer que la carte prend toute la hauteur disponible */
+#root {
+  height: 100vh;
+}

@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #0EA5E9;  /* Bleu vif moderne */
+  --primary-dark: #0284C7;
+  --secondary: #F472B6; /* Rose doux pour les accents */
+  --background: #F8FAFC;
+  --card: #FFFFFF;
+  --text: #1E293B;
+}
+
+body {
+  @apply bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen font-sans text-slate-800;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+.leaflet-routing-container {
+  background-color: white;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  max-width: 350px;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+.leaflet-routing-alt {
+  max-height: 300px;
+  overflow-y: auto;
+  border-bottom: none !important;
+  padding: 0.5rem;
+}
+
+.leaflet-routing-alt h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #059669;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #ecfdf5;
+}
+
+.leaflet-routing-alt h3 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0.5rem 0;
+}
+
+.leaflet-routing-alt-minimized {
+  background-color: white;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.leaflet-routing-icon {
+  background-image: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #059669;
+  margin-right: 0.75rem;
+}
+
+.leaflet-routing-alt tr {
+  padding: 0.5rem 0;
+}
+
+.leaflet-routing-alt tr:hover {
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.leaflet-routing-alt td {
+  padding: 0.5rem;
+}
+
+.leaflet-routing-geocoder {
+  display: none;
+}
+
+/* Popup customization */
+.leaflet-popup-content-wrapper {
+  border-radius: 1rem;
+  padding: 0.5rem;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+}
+
+.leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: white !important;
+  border: none !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 16px !important;
+  color: #059669 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: #f0fdf4 !important;
+  color: #047857 !important;
+}
+.leaflet-routing-container {
+  display: none !important;
+  background: white;
+  padding: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-routing-container.visible {
+  display: block !important;
+}
+
+@keyframes progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-progress {
+  animation: progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Glassmorphism cards */
+.glass-card {
+  @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-lg;
+}
+
+/* Animations fluides */
+.fade-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Personnalisation des scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-sky-500/50 rounded-full hover:bg-sky-600/50;
+}
