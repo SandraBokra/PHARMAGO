@@ -4,14 +4,18 @@ import re
 import json
 import os
 import time
-import psycopg2
 from datetime import datetime
-from dotenv import load_dotenv
+from supabase import create_client, Client
 
+# Configuration Supabase
+SUPABASE_URL = "https://vpxuyzhshqpcyvhrzfsb.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZweHV5emhzaHFwY3l2aHJ6ZnNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0ODQ3NzUsImV4cCI6MjA1NjA2MDc3NX0.e_efkq9gtjZ7PB8D1sfKAG6SEENHL865_gn1ydtu7hs"
 
-# Ajouter après les imports
+# Initialisation du client Supabase (version simplifiée)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Constantes
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'pharmacies.json')
-# Ajouter après les imports, avant la connexion PostgreSQL
 
 def extract_pdf_content(pdf_path):
     """Extrait le contenu texte de chaque page du PDF."""
@@ -41,25 +45,6 @@ def extract_pdf_content(pdf_path):
     except Exception as e:
         print(f"❌ Erreur lors de l'extraction du PDF : {e}")
         return []
-    
-# Connexion à PostgreSQL
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
-
-# Connexion à PostgreSQL avec les variables d'environnement
-try:
-    conn = psycopg2.connect(
-        dbname=os.getenv('DB_DATABASE'),  # Changé de DB_NAME à DB_DATABASE
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        host=os.getenv('DB_HOST'),
-        port=os.getenv('DB_PORT', 5432)
-    )
-    cur = conn.cursor()
-    print("✅ Connexion réussie à PostgreSQL !")
-except Exception as e:
-    print(f"❌ Erreur de connexion à PostgreSQL : {e}")
-    exit()
-
 
 def clean_address(address):
     """Nettoie et enrichit l'adresse pour Photon."""
@@ -186,175 +171,255 @@ def get_coordinates_from_address(address):
         print(f"❌ Erreur lors de la recherche des coordonnées : {e}")
         return None, None
 
-def format_phone_number(phone_number):
-    """ Formate le numéro de téléphone en ajoutant un slash après chaque série de 10 chiffres. """
-    clean_number = phone_number.replace(" ", "").replace("/", "")
-    formatted_number = '/'.join([clean_number[i:i+10] for i in range(0, len(clean_number), 10)])
-    return formatted_number
+def format_phone_number(phone_str):
+    """Formate les numéros de téléphone selon le format ivoirien."""
+    # Nettoyer le numéro
+    clean_number = re.sub(r'[^0-9]', '', phone_str)
+    
+    # Vérifier si le numéro a la bonne longueur (10 chiffres)
+    if len(clean_number) != 10:
+        return None
+
+    # Format ivoirien: XX XX XX XX XX
+    return ' '.join([clean_number[i:i+2] for i in range(0, 10, 2)])
+
+def extract_phone_numbers(phone_text):
+    """Extrait les numéros de téléphone du texte."""
+    if not phone_text:
+        return []
+
+    print(f"\nTexte téléphone brut: {phone_text}")
+    
+    # Nettoyage préliminaire
+    phone_text = re.sub(r'[–—]', '-', phone_text)
+    phone_text = re.sub(r'\s+', ' ', phone_text)
+    
+    # Pattern amélioré pour les numéros ivoiriens
+    phone_pattern = r'(?:0[1-7]|2[1-7])\s*(?:\d{2}\s*){4}'
+    
+    numbers = []
+    for match in re.finditer(phone_pattern, phone_text):
+        num = match.group()
+        # Nettoyer et formater
+        clean_num = ''.join(filter(str.isdigit, num))
+        if len(clean_num) == 10:
+            formatted = ' '.join(clean_num[i:i+2] for i in range(0, 10, 2))
+            numbers.append(formatted)
+            print(f"Numéro trouvé: {formatted}")
+    
+    print(f"Nombres extraits: {numbers}")
+    return numbers
 
 def extract_week_dates(content):
-    """Extrait la période de garde de la semaine à partir du contenu PDF avec une détection flexible."""
-    # Nettoyer et normaliser le contenu
-    content = content.replace('\n', ' ').strip().upper()
-    content = re.sub(r'\s+', ' ', content)
-
+    """Extrait la période de garde de la semaine à partir du contenu PDF."""
+    # Nettoyage initial du contenu
+    content = content.replace('\n', ' ').upper()
+    # Supprimer les espaces multiples tout en préservant les espaces simples dans les nombres
+    content = ' '.join(content.split())
+    
     print("\nDébut du contenu analysé:")
     print(content[:200])
 
-    # Collection de patterns pour différents formats possibles
-    date_patterns = [
-        # Format complet avec "SEMAINE DU"
-        r"(?:GARDE|SEMAINE).*?(?:DU|DE).*?(?:SAMEDI|SAM\.?)?\s*(?:0?\s*)?(\d{1,2})\s*(?:AU|-)?\s*(?:VENDREDI|VEN\.?)?\s*(\d{1,2})\s*([A-ZÉÈ\s]+?)(?:\s+|/|-)(\d{4})",
-        # Format sans "SEMAINE DU"
-        r"(?:DU|DE)\s*(?:0?\s*)?(\d{1,2})\s*(?:AU|-)?\s*(\d{1,2})\s*([A-ZÉÈ\s]+?)(?:\s+|/|-)(\d{4})",
-        # Format minimal avec juste les dates
-        r"(\d{1,2})\s*(?:AU|-)?\s*(\d{1,2})\s*([A-ZÉÈ\s]+?)(?:\s+|/|-)(\d{4})",
-    ]
+    # Extraction des composants de date avec un pattern très permissif
+    try:
+        # 1. Trouver l'année
+        annee_match = re.search(r'20\d{2}', content)
+        if not annee_match:
+            raise ValueError("Année non trouvée")
+        annee = annee_match.group(0)
 
-    # Mapping extensif des mois avec toutes les variations possibles
-    mois_mapping = {
-        'JANV': '01', 'JANVIER': '01', 'JAN': '01',
-        'FEVR': '02', 'FEVRIER': '02', 'FEV': '02', 'FEVRI': '02',
-        'MARS': '03', 'MAR': '03',
-        'AVRI': '04', 'AVRIL': '04', 'AVR': '04',
-        'MAI': '05',
-        'JUIN': '06', 'JUI': '06',
-        'JUIL': '07', 'JUILLET': '07',
-        'AOUT': '08', 'AOÛ': '08', 'AOU': '08',
-        'SEPT': '09', 'SEPTEMBRE': '09', 'SEP': '09',
-        'OCTO': '10', 'OCTOBRE': '10', 'OCT': '10',
-        'NOVE': '11', 'NOVEMBRE': '11', 'NOV': '11',
-        'DECE': '12', 'DÉCEMBRE': '12', 'DECEMBRE': '12', 'DEC': '12'
-    }
+        # 2. Trouver le mois avec toutes les variations possibles
+        mois_pattern = r'(?:JANV|FEVR|MARS|AVRI|MAI|JUIN|JUIL|AOUT|SEPT|OCTO|NOVE|DECE|JANVIER|FEVRIER|MARS|AVRIL|MAI|JUIN|JUILLET|AOUT|SEPTEMBRE|OCTOBRE|NOVEMBRE|DECEMBRE)(?:[A-Z\s]*)?'
+        mois_match = re.search(mois_pattern, content)
+        if not mois_match:
+            raise ValueError("Mois non trouvé")
+        mois_texte = mois_match.group(0)
 
-    # Essayer chaque pattern jusqu'à ce qu'un fonctionne
-    for pattern in date_patterns:
-        match = re.search(pattern, content)
-        if match:
-            try:
-                # Nettoyer les composants de la date
-                jour_debut = match.group(1).strip().replace(' ', '')
-                jour_fin = match.group(2).strip()
-                mois_texte = match.group(3).strip()
-                annee = match.group(4).strip()
+        # 3. Trouver les jours avec un pattern très permissif
+        jours_pattern = r'(?:SAMEDI|SAM\.?)?\s*(\d\s*\d|\d{1,2})\s*(?:AU|-)\s*(?:VENDREDI|VEN\.?)?\s*(\d\s*\d|\d{1,2})'
+        jours_match = re.search(jours_pattern, content)
+        if not jours_match:
+            raise ValueError("Jours non trouvés")
+        
+        # Nettoyer les jours en supprimant les espaces
+        jour_debut = re.sub(r'\s+', '', jours_match.group(1))
+        jour_fin = re.sub(r'\s+', '', jours_match.group(2))
 
-                # Nettoyer le texte du mois
-                mois_clean = re.sub(r'[^A-Z]', '', mois_texte)
+        # Mapping des mois
+        mois_mapping = {
+            'JANV': '01', 'JANVIER': '01',
+            'FEVR': '02', 'FEVRIER': '02', 'FEV': '02',
+            'MARS': '03',
+            'AVRI': '04', 'AVRIL': '04',
+            'MAI': '05',
+            'JUIN': '06',
+            'JUIL': '07', 'JUILLET': '07',
+            'AOUT': '08', 'AOÛT': '08',
+            'SEPT': '09', 'SEPTEMBRE': '09',
+            'OCTO': '10', 'OCTOBRE': '10',
+            'NOVE': '11', 'NOVEMBRE': '11',
+            'DECE': '12', 'DECEMBRE': '12', 'DÉCEMBRE': '12'
+        }
 
-                # Trouver le mois correspondant
-                mois = None
-                for key, value in mois_mapping.items():
-                    if mois_clean.startswith(key) or key in mois_clean:
-                        mois = value
-                        break
+        # Trouver le numéro du mois
+        mois = None
+        mois_clean = re.sub(r'[^A-Z]', '', mois_texte)
+        for key, value in mois_mapping.items():
+            if key in mois_clean:
+                mois = value
+                break
 
-                if not mois:
-                    print(f"⚠️ Mois non reconnu, essai suivant : {mois_texte}")
-                    continue
+        if not mois:
+            raise ValueError(f"Mois non reconnu : {mois_texte}")
 
-                # Formater et valider les dates
-                try:
-                    date_debut_str = f"{jour_debut.zfill(2)}/{mois}/{annee}"
-                    date_fin_str = f"{jour_fin.zfill(2)}/{mois}/{annee}"
-
-                    date_debut = datetime.strptime(date_debut_str, "%d/%m/%Y")
-                    date_fin = datetime.strptime(date_fin_str, "%d/%m/%Y")
-
-                    print(f"✅ Période trouvée : du {date_debut.strftime('%d %B %Y')} au {date_fin.strftime('%d %B %Y')}")
-                    return date_debut.date(), date_fin.date()
-                except ValueError as e:
-                    print(f"⚠️ Format de date invalide : {e}")
-                    continue
-
-            except Exception as e:
-                print(f"⚠️ Erreur lors du traitement : {e}")
-                continue
-
-    print("❌ Aucune date valide trouvée après tous les essais")
-    raise ValueError("❌ Impossible de déterminer la période de garde")
-
-def insert_pharmacies_to_db(pharmacies):
-    """Insère les pharmacies extraites dans la base de données."""
-    for pharmacy in pharmacies:
-        # Vérification des données obligatoires
-        if not pharmacy.get("date_de_garde"):
-            print(f"⚠️ Date de garde manquante pour {pharmacy.get('name')} - Ignoré")
-            continue
-
+        # Formatage et validation des dates
         try:
-            cur.execute("""
-                INSERT INTO pharmacies_de_garde 
-                (nom, adresse, latitude, longitude, telephone, horaires, date_de_garde)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                pharmacy.get("name"),
-                pharmacy.get("adresse", ""),
-                pharmacy.get("latitude"),
-                pharmacy.get("longitude"),
-                ", ".join(pharmacy.get("phones", [])),
-                pharmacy.get("horaires", ""),
-                pharmacy.get("date_de_garde")
-            ))
-            conn.commit()
-            print(f"✅ Pharmacie {pharmacy.get('name')} insérée avec succès")
+            # Assurer que les jours sont sur 2 chiffres
+            jour_debut = jour_debut.zfill(2)
+            jour_fin = jour_fin.zfill(2)
 
+            # Créer les dates
+            date_debut = datetime.strptime(f"{annee}-{mois}-{jour_debut}", "%Y-%m-%d")
+            date_fin = datetime.strptime(f"{annee}-{mois}-{jour_fin}", "%Y-%m-%d")
+
+            # Vérifier la cohérence des dates
+            if date_fin < date_debut:
+                raise ValueError("La date de fin est antérieure à la date de début")
+
+            print(f"✅ Période trouvée : du {date_debut.strftime('%A %d %B %Y')} au {date_fin.strftime('%A %d %B %Y')}")
+            return date_debut.date(), date_fin.date()
+
+        except ValueError as e:
+            raise ValueError(f"Erreur lors de la création des dates : {e}")
+
+    except Exception as e:
+        print(f"❌ Erreur lors de l'extraction des dates : {e}")
+        # En cas d'échec, on peut retourner des dates par défaut ou lever une exception
+        raise ValueError("❌ Impossible de déterminer la période de garde")
+
+# Modification de la fonction insert_to_supabase
+def insert_to_supabase(pharmacies):
+    """Insère ou met à jour les pharmacies dans Supabase."""
+    try:
+        # Préparation des données
+        pharmacy_records = [{
+            "nom": pharmacy["name"],
+            "adresse": pharmacy["adresse"],
+            "latitude": pharmacy["latitude"],
+            "longitude": pharmacy["longitude"],
+            "telephone": ", ".join(pharmacy["phones"]) if pharmacy.get("phones") else "",
+            "horaires": pharmacy["horaires"],
+            "date_debut_garde": pharmacy["date_debut_garde"],
+            "date_fin_garde": pharmacy["date_fin_garde"]
+        } for pharmacy in pharmacies]
+        
+        # Tentative d'insertion avec plus de détails sur l'erreur
+        try:
+            result = supabase.table("pharmacies_de_garde").upsert(pharmacy_records).execute()
+            print(f"✅ {len(pharmacy_records)} pharmacies synchronisées avec Supabase")
+            return True
         except Exception as e:
-            print(f"❌ Erreur lors de l'insertion de {pharmacy.get('name')} : {e}")
-            conn.rollback()
-
+            print(f"Détails de l'erreur Supabase : {str(e)}")
+            return False
+                
+    except Exception as e:
+        print(f"❌ Erreur Supabase : {e}")
+        return False
 
 def extract_pharmacies(content):
-    """Extrait les informations des pharmacies de garde depuis le contenu du PDF."""
+    """Extrait les informations des pharmacies de garde depuis le contenu PDF."""
     pharmacies = []
     try:
-        # Extraction de la période de garde
         date_debut, date_fin = extract_week_dates(content)
         
-        # Recherche des pharmacies dans le contenu
-        # Pattern pour trouver les lignes contenant les informations des pharmacies
-        pharmacy_pattern = r"PHCIE\s*(.*?)\s*/\s*(.*?TEL[.: ]*(\d[\d\s/]*\d))"
-        matches = re.finditer(pharmacy_pattern, content, re.IGNORECASE)
+        # Pattern amélioré pour capturer toute l'information
+        pharmacy_pattern = r"""
+            (?:PHCIE|PHARMACIE)\s+
+            ([^/-]+?)                       # Nom de la pharmacie
+            \s*[-/]\s*                      # Séparateur (- ou /)
+            ([^-]*?)                        # Adresse complète
+            \s+(?:[-–]\s*)?TEL\.?\s*       # Marqueur de téléphone
+            ([0-9\s/.-]+)                   # Numéros de téléphone
+            (?:\s*HORAIRES?\s*:?\s*
+                ([^/\n]*)                   # Horaires
+            )?
+        """
+        
+        matches = re.finditer(pharmacy_pattern, content, re.VERBOSE | re.IGNORECASE)
         
         for match in matches:
             try:
-                # Extraction du nom et des numéros de téléphone
+                # Extraction des données
                 pharmacy_name = match.group(1).strip()
-                phone_numbers = re.findall(r"\d{7,}", match.group(3).replace(' ', '').replace('/', ''))
-                formatted_phones = [format_phone_number(number) for number in phone_numbers]
+                address_info = match.group(2).strip()
+                phone_raw = match.group(3).strip()
+                horaires = match.group(4).strip() if match.group(4) else "24h/24"
+
+                # Debug
+                print(f"\n=== Extraction pharmacie ===")
+                print(f"Nom: {pharmacy_name}")
+                print(f"Adresse brute: {address_info}")
+                print(f"Téléphone brut: {phone_raw}")
+
+                # Si le nom est invalide, on saute
+                if not pharmacy_name or len(pharmacy_name) < 3:
+                    print(f"⚠️ Nom invalide ignoré: {pharmacy_name}")
+                    continue
+
+                # Nettoyage des données
+                pharmacy_name = re.sub(r'\s+', ' ', pharmacy_name)
+                address_info = re.sub(r'\s+', ' ', address_info)
                 
-                # Récupération des coordonnées géographiques
-                address = pharmacy_name  # Utilise le nom comme adresse de base
-                latitude, longitude = get_coordinates_from_address(address)
+                # Extraction des numéros
+                phone_numbers = extract_phone_numbers(phone_raw)
                 
+                # Récupération des coordonnées
+                latitude, longitude = None, None
+                if address_info:
+                    full_address = f"{pharmacy_name}, {address_info}"
+                    latitude, longitude = get_coordinates_from_address(full_address)
+
                 # Création de l'objet pharmacie
                 pharmacy = {
                     "name": pharmacy_name,
-                    "adresse": address,
-                    "phones": formatted_phones,
+                    "adresse": address_info,
+                    "phones": phone_numbers,
                     "latitude": latitude,
                     "longitude": longitude,
-                    "date_de_garde": date_debut.strftime('%Y-%m-%d'),
-                    "horaires": "24h/24"  # Par défaut pour les pharmacies de garde
+                    "horaires": horaires,
+                    "date_debut_garde": date_debut.strftime('%Y-%m-%d'),
+                    "date_fin_garde": date_fin.strftime('%Y-%m-%d')
                 }
-                
+
+                # Vérification des données essentielles
+                if not address_info:
+                    print(f"⚠️ Adresse manquante pour {pharmacy_name}")
+                if not phone_numbers:
+                    print(f"⚠️ Téléphone manquant pour {pharmacy_name}")
+                if not latitude or not longitude:
+                    print(f"⚠️ Coordonnées manquantes pour {pharmacy_name}")
+
                 pharmacies.append(pharmacy)
-                print(f"✅ Pharmacie extraite : {pharmacy_name}")
-                
+                print(f"✅ Pharmacie extraite avec succès: {pharmacy_name}")
+                print(f"   📍 Coordonnées: {latitude}, {longitude}")
+                print(f"   📞 Téléphones: {', '.join(phone_numbers)}")
+                print(f"   📍 Adresse: {address_info}")
+
             except Exception as e:
-                print(f"⚠️ Erreur lors de l'extraction d'une pharmacie : {e}")
+                print(f"❌ Erreur lors du traitement de la pharmacie: {str(e)}")
                 continue
-        
+
         return pharmacies
-        
-    except ValueError as e:
-        print(f"❌ Erreur : {e}")
+
+    except Exception as e:
+        print(f"❌ Erreur globale: {str(e)}")
         return []
 
 def save_to_json(data, filepath):
     """Sauvegarde les données dans un fichier JSON."""
     try:
         # Création du dossier data s'il n'existe pas
-        os.makedirs(os.path.dirname(filepath), existant=True)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)  # Correction de 'existant' à 'exist_ok'
         
         # Sauvegarde des données en JSON
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -367,21 +432,27 @@ def save_to_json(data, filepath):
 def main():
     pdf_path = 'C:\\Users\\hp\\Desktop\\pharmago_main\\backend\\data\\garde-fevrier-2025.pdf'
     extracted_text = extract_pdf_content(pdf_path)
+    
+    if not extracted_text:
+        print("❌ Aucun texte extrait du PDF")
+        return
 
     all_pharmacies = []
-    for page_num, page_content in enumerate(extracted_text):
+    for page_content in extracted_text:
         pharmacies = extract_pharmacies(page_content)
         all_pharmacies.extend(pharmacies)
 
     if all_pharmacies:
+        # Sauvegarde locale en JSON (optionnel, pour debug)
         save_to_json(all_pharmacies, DATA_FILE)
-        insert_pharmacies_to_db(all_pharmacies)  # Insérer dans la base de données
+        
+        # Insertion dans Supabase
+        if insert_to_supabase(all_pharmacies):
+            print("✅ Processus terminé avec succès")
+        else:
+            print("❌ Erreur lors de la synchronisation avec Supabase")
     else:
-        print("⚠️ Aucune pharmacie trouvée.")
+        print("⚠️ Aucune pharmacie trouvée dans le PDF")
 
 if __name__ == "__main__":
     main()
-
-# Fermeture de la connexion à la base de données
-cur.close()
-conn.close()

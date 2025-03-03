@@ -1,30 +1,43 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import MapController from './composants/MapController';
-import LoadingScreen from './composants/LoadingScreen';
-import PharmacyList from './composants/PharmacyList';
-import { X, MapPin, Info, Loader2, Pill  } from 'lucide-react';
-import { calculateDistance } from './utils/distanceUtils';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Home from './pages/Home';
-import PharmaciesList from './pages/PharmaciesList';
-import PharmacyDetails from './pages/PharmacyDetails';
-const queryClient = new QueryClient();
+import Layout from './components/layout/Layout';
+import LoadingSpinner from './components/ui/LoadingSpinner';
+import HomePage from './pages/HomePage';
+import MapPage from './pages/MapPage';
+import Emergency from './pages/Emergency';
+import Medecine from './pages/Medecine';
 
-const App = () => {
+// Configuration de React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/pharmacies" element={<PharmaciesList />} />
-          <Route path="/pharmacy/:id" element={<PharmacyDetails />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <Router>
+        <div className="bg-gray-50 min-h-screen">
+          <Suspense fallback={<LoadingSpinner />}>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/map" element={<MapPage />} />
+                <Route path="/emergency" element={<Emergency />} />
+                <Route path="/medecine" element={<Medecine />} />
+              </Routes>
+            </Layout>
+          </Suspense>
+        </div>
+      </Router>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;

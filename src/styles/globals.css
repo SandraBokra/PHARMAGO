@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import './theme.css';
+
+/* Appliquer les couleurs du thème globalement */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Style des scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #10B981;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #059669;
+}
+
+/* Mode sombre pour la carte */
+.dark .leaflet-tile {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.dark .leaflet-container {
+  background: #1a1a2e;
+}
+
+/* Animation pour les transitions de thème */
+* {
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+}
+
+/* Marqueurs personnalisés */
+.custom-marker div {
+  transition: transform 0.2s;
+}
+
+.custom-marker:hover div {
+  transform: scale(1.2);
+}
+
+/* Animations pour les transitions */
+.page-transition {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

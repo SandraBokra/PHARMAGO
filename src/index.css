@@ -1,24 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --primary: #0EA5E9;  /* Bleu vif moderne */
-  --primary-dark: #0284C7;
-  --secondary: #F472B6; /* Rose doux pour les accents */
-  --background: #F8FAFC;
-  --card: #FFFFFF;
-  --text: #1E293B;
+  --primary: #059669;
+  --secondary: #ffffff;
+  --accent: #f59e0b;
+  --text: #1f2937;
+  --background: #f9fafb;
 }
 
 body {
-  @apply bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen font-sans text-slate-800;
+  @apply bg-gray-50;
+  font-family: 'Inter', sans-serif;
 }
 
+/* Pour Leaflet */
 .leaflet-container {
-  width: 100%;
   height: 100%;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  width: 100%;
+  @apply font-sans;
+}
+
+/* Pour les animations fluides */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Pour le scrolling doux */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Pour cacher la scrollbar tout en gardant la fonctionnalité */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 .leaflet-routing-container {
@@ -90,11 +113,13 @@ body {
 .leaflet-popup-content-wrapper {
   border-radius: 1rem;
   padding: 0.5rem;
+  @apply rounded-lg shadow-lg;
 }
 
 .leaflet-popup-content {
   margin: 0;
   min-width: 200px;
+  @apply m-0 p-0;
 }
 
 .leaflet-popup-tip-container {
@@ -183,4 +208,46 @@ body {
 
 ::-webkit-scrollbar-thumb {
   @apply bg-sky-500/50 rounded-full hover:bg-sky-600/50;
+}
+
+/* Styles pour la carte */
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  z-index: 1;
+}
+
+/* Assurer que le bottom sheet reste au-dessus de la carte */
+.bottom-sheet {
+  z-index: 1000;
+}
+
+/* Assurer que le header et la barre de navigation restent au-dessus */
+.header {
+  z-index: 1001;
+}
+
+.bottom-nav {
+  z-index: 1001;
+}
+
+/* Optimisations mobile */
+@media (max-width: 640px) {
+  .leaflet-popup-content {
+    @apply text-sm;
+  }
+  
+  .leaflet-touch .leaflet-control-zoom {
+    @apply hidden;
+  }
+}
+
+/* Animations fluides */
+.leaflet-fade-anim .leaflet-popup {
+  @apply transition-opacity duration-150;
+}
+
+h1, h2, h3, h4, h5, h6, 
+p, span, a, button, div {
+  font-family: 'Inter', sans-serif !important;
 }
