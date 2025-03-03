@@ -7,7 +7,7 @@ const Header = () => {
       <div className="h-full px-4 flex items-center">
         <div className="flex items-center gap-2">
           <img 
-            src="/public/web-app-manifest-192x192.png" 
+            src="web-app-manifest-192x192.png" 
             alt="PharmaGo"
             className="h-8 w-8"
           />

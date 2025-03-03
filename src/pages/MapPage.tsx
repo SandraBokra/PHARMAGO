@@ -29,7 +29,7 @@ const MapPage = () => {
   console.log('Pharmacies chargées:', pharmacies); // Debug
 
   return (
-    <div className="h-[92vh] relative"> {/* Augmenté de h-screen à h-[92vh] */}
+    <div className="h-screen relative">
       <MapContainer
         center={userLocation}
         zoom={15}
