@@ -91,7 +91,7 @@ const BottomSheet = ({ pharmacies, userLocation, selectedPharmacy, onPharmacySel
                     <p className="text-sm text-gray-600 mt-1">{pharmacy.adresse}</p>
                   </div>
                   <span className="text-sm text-gray-500">
-                    {pharmacy.distance.toFixed(1)} km
+                    {pharmacy.distance != null ? `${pharmacy.distance.toFixed(1)} km` : '—'}
                   </span>
                 </div>
                 

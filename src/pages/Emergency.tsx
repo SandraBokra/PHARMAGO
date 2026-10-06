@@ -1,5 +1,3 @@
-import React from "react";
-
 const Emergency = () => {
   const emergencyNumbers = [
     { service: "SAMU", number: "185" },

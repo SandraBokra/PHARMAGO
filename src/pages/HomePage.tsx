@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Navigation2, MapPin } from 'lucide-react';
+import { Navigation2, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Circle, Marker } from 'react-leaflet';
 import { useGeolocation } from '../hooks/useGeolocation';
@@ -11,22 +11,20 @@ const HomePage = () => {
   const { data: pharmacies } = usePharmacies(location);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-4 pb-20">
-      {/* En-tête avec le même style que le header */}
+    <div className="min-h-screen bg-gray-50 pt-4 pb-24">
+      {/* En-tête */}
       <div className="px-4 mb-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-2">
-          Trouvez votre pharmacie
-        </h1>
-        <p className="text-gray-600">
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Trouvez votre pharmacie</h2>
+        <p className="text-gray-600 text-sm">
           Localisez rapidement les pharmacies ouvertes autour de vous
         </p>
       </div>
 
-      {/* Cartes existantes */}
-      <div className="grid grid-cols-2 gap-4 px-4 mb-8">
-        {/* Premier cadre - Portrait amélioré */}
+      {/* Cartes principales */}
+      <div className="grid grid-cols-2 gap-4 px-4 mb-6">
+        {/* Carte Liste */}
         <Link to="/map" state={{ showBottomSheet: true }}>
-          <motion.div 
+          <motion.div
             whileTap={{ scale: 0.95 }}
             className="aspect-[3/4.2] bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2rem] p-7 text-white flex flex-col justify-between shadow-lg"
           >
@@ -38,7 +36,7 @@ const HomePage = () => {
           </motion.div>
         </Link>
 
-        {/* Deuxième cadre - Hauteur augmentée */}
+        {/* Mini-carte */}
         <div className="aspect-[3.5/3] relative overflow-hidden rounded-[2rem] shadow-lg border-4 border-white">
           {location && (
             <MapContainer
@@ -50,7 +48,7 @@ const HomePage = () => {
               attributionControl={false}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              
+
               {/* Zone de 2km */}
               <Circle
                 center={location}
@@ -64,11 +62,11 @@ const HomePage = () => {
                 icon={L.divIcon({
                   html: `<div class="w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>`,
                   className: '',
-                  iconSize: [12, 12]
+                  iconSize: [12, 12],
                 })}
               />
 
-              {/* Pharmacies */}
+              {/* Marqueurs pharmacies */}
               {pharmacies?.map(pharmacy => (
                 <Marker
                   key={pharmacy.id}
@@ -76,14 +74,14 @@ const HomePage = () => {
                   icon={L.divIcon({
                     html: `<div class="w-2 h-2 bg-emerald-500 rounded-full"></div>`,
                     className: '',
-                    iconSize: [8, 8]
+                    iconSize: [8, 8],
                   })}
                 />
               ))}
             </MapContainer>
           )}
-          <Link 
-            to="/map" 
+          <Link
+            to="/map"
             className="absolute inset-0 flex items-end p-4 bg-gradient-to-t from-black/50 to-transparent"
           >
             <span className="text-white font-medium text-sm">Voir carte complète</span>
@@ -91,23 +89,8 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Nouveaux cadres d'information */}
+      {/* Informations complémentaires */}
       <div className="px-4 space-y-4">
-        <a href="tel:+2250747387702">
-          <div className="bg-white p-6 rounded-[3rem_0.5rem_0.5rem_3rem] shadow-lg border-l-4 border-emerald-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-emerald-600">Besoin d'aide ?</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Notre équipe est disponible 24/7
-                </p>
-              </div>
-              <button className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full text-sm font-medium hover:bg-emerald-100 transition-colors">
-                Contactez-nous
-              </button>
-            </div>
-          </div>
-        </a>
         {/* Pharmacies de garde */}
         <div className="bg-gradient-to-br from-rose-500 to-orange-500 p-6 rounded-[2rem_0_2rem_0] text-white shadow-lg">
           <h3 className="text-lg font-medium mb-3">Pharmacies de garde</h3>
@@ -123,23 +106,17 @@ const HomePage = () => {
           </div>
         </div>
 
-        
-
-        {/* Besoin d'aide - avec lien téléphone */}
-        <a 
+        {/* Besoin d'aide — lien téléphone (une seule fois) */}
+        <a
           href="tel:+2250747387702"
-          className="block bg-gradient-to-r from-emerald-500 to-teal-600 p-6 rounded-[0_2rem_2rem_2rem] text-white shadow-lg"
+          className="flex items-center justify-between bg-white p-5 rounded-2xl shadow-md border border-gray-100 hover:border-emerald-200 transition-colors"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-lg">Besoin d'aide ?</h3>
-              <p className="text-sm text-emerald-100">
-                Notre équipe est disponible 24/7
-              </p>
-            </div>
-            <div className="bg-white/20 px-4 py-2 rounded-full text-sm backdrop-blur-sm">
-              Appeler
-            </div>
+          <div>
+            <h3 className="font-medium text-gray-900">Besoin d'aide ?</h3>
+            <p className="text-sm text-gray-500 mt-0.5">Notre équipe est disponible 24/7</p>
+          </div>
+          <div className="bg-emerald-50 text-emerald-600 p-3 rounded-full">
+            <Phone size={20} />
           </div>
         </a>
       </div>

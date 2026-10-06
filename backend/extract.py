@@ -6,12 +6,22 @@ import os
 import time
 from datetime import datetime
 from supabase import create_client, Client
+from dotenv import load_dotenv
 
-# Configuration Supabase
-SUPABASE_URL = "https://vpxuyzhshqpcyvhrzfsb.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZweHV5emhzaHFwY3l2aHJ6ZnNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0ODQ3NzUsImV4cCI6MjA1NjA2MDc3NX0.e_efkq9gtjZ7PB8D1sfKAG6SEENHL865_gn1ydtu7hs"
+# Charger les variables d'environnement depuis .env
+load_dotenv()
 
-# Initialisation du client Supabase (version simplifiée)
+# Configuration Supabase — chargée depuis les variables d'environnement
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise EnvironmentError(
+        "❌ Variables SUPABASE_URL et SUPABASE_KEY manquantes. "
+        "Créez un fichier backend/.env avec ces valeurs."
+    )
+
+# Initialisation du client Supabase
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Constantes

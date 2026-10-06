@@ -88,9 +88,9 @@ export class LocationService {
   }
 
   static openLocationSettings() {
-    if ('AndroidOpenSettings' in window) {
-      // @ts-ignore
-      window.AndroidOpenSettings.openLocationSourceSettings();
+    const win = window as unknown as { AndroidOpenSettings?: { openLocationSourceSettings: () => void } };
+    if (win.AndroidOpenSettings) {
+      win.AndroidOpenSettings.openLocationSourceSettings();
     } else {
       window.open('app-settings:', '_system');
     }
